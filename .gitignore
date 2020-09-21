@@ -31,3 +31,4 @@
 *.compiled
 /frameworks/ml/nn/runtime/test/*
 /frameworks/base/config/hiddenapi-private-dex.txt
+android9.*
