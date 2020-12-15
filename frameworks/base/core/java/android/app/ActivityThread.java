@@ -2805,7 +2805,15 @@ public final class ActivityThread extends ClientTransactionHandler {
     }
 
     /**  Core implementation of activity launch. */
+			
+	/**
+	 *
+	 *	程序的入口
+	 */
+			
     private Activity performLaunchActivity(ActivityClientRecord r, Intent customIntent) {
+
+    	// activity信息
         ActivityInfo aInfo = r.activityInfo;
         if (r.packageInfo == null) {
             r.packageInfo = getPackageInfo(aInfo.applicationInfo, r.compatInfo,
@@ -2823,11 +2831,12 @@ public final class ActivityThread extends ClientTransactionHandler {
             component = new ComponentName(r.activityInfo.packageName,
                     r.activityInfo.targetActivity);
         }
-
+		//	初始activity的上下文
         ContextImpl appContext = createBaseContextForActivity(r);
         Activity activity = null;
         try {
             java.lang.ClassLoader cl = appContext.getClassLoader();
+			//	通过Instrumentation 仪表类 创建activity
             activity = mInstrumentation.newActivity(
                     cl, component.getClassName(), r.intent);
             StrictMode.incrementExpectedActivityCount(activity.getClass());
@@ -2845,6 +2854,7 @@ public final class ActivityThread extends ClientTransactionHandler {
         }
 
         try {
+			//	初始化Application
             Application app = r.packageInfo.makeApplication(false, mInstrumentation);
 
             if (localLOGV) Slog.v(TAG, "Performing launch of " + r);
@@ -2863,13 +2873,16 @@ public final class ActivityThread extends ClientTransactionHandler {
                 }
                 if (DEBUG_CONFIGURATION) Slog.v(TAG, "Launching activity "
                         + r.activityInfo.name + " with config " + config);
+				//	声明Window 
                 Window window = null;
                 if (r.mPendingRemoveWindow != null && r.mPreserveWindow) {
+					//	给window赋值 （这里其实并没有真正的赋值，只是从activity中拿出mWindow成员变量）
                     window = r.mPendingRemoveWindow;
                     r.mPendingRemoveWindow = null;
                     r.mPendingRemoveWindowManager = null;
                 }
                 appContext.setOuterContext(activity);
+				// window的真实赋值是在这里	new PhoneWindow(this, window, activityConfigCallback);
                 activity.attach(appContext, this, getInstrumentation(), r.token,
                         r.ident, app, r.intent, r.activityInfo, title, r.parent,
                         r.embeddedID, r.lastNonConfigurationInstances, config,
@@ -3842,6 +3855,7 @@ public final class ActivityThread extends ClientTransactionHandler {
             }
         }
         if (r.window == null && !a.mFinished && willBeVisible) {
+			//	获取window 和 DecorView	getWindow()获取都是Activity.java中的一个成员变量
             r.window = r.activity.getWindow();
             View decor = r.window.getDecorView();
             decor.setVisibility(View.INVISIBLE);
@@ -4488,6 +4502,8 @@ public final class ActivityThread extends ClientTransactionHandler {
                     if (r.mPreserveWindow) {
                         // Hold off on removing this until the new activity's
                         // window is being added.
+                        // 真实的 创建window	继续搜索源码可以发现 是从activity中获取的一个成员变量
+                        //	但是也只是获取并没有赋值
                         r.mPendingRemoveWindow = r.window;
                         r.mPendingRemoveWindowManager = wm;
                         // We can only keep the part of the view hierarchy that we control,

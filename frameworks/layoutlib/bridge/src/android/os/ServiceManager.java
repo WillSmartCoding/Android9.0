@@ -42,7 +42,7 @@ public final class ServiceManager {
     /**
      * Place a new @a service called @a name into the service
      * manager.
-     * 添加一个新的服务到 ServiceManager
+     * 添加一个新的服务到 ServiceManagerpp
      *
      * @param name 新服务的名称
      * @param service the service object

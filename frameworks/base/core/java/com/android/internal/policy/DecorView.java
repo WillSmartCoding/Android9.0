@@ -1882,6 +1882,9 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
         }
 
         mDecorCaptionView = createDecorCaptionView(inflater);
+		/**
+		 *	解析拿到 rootview
+		 */
         final View root = inflater.inflate(layoutResource, null);
         if (mDecorCaptionView != null) {
             if (mDecorCaptionView.getParent() == null) {
@@ -1893,8 +1896,14 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
         } else {
 
             // Put it below the color views.
+            /**
+             *	然后再进行add
+             */
             addView(root, 0, new ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT));
         }
+		/**
+		 * mContentRoot 就是加载的资源文件xml
+		 */
         mContentRoot = (ViewGroup) root;
         initializeElevation();
     }
