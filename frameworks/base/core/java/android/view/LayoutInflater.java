@@ -417,9 +417,15 @@ public abstract class LayoutInflater {
             Log.d(TAG, "INFLATING from resource: \"" + res.getResourceName(resource) + "\" ("
                     + Integer.toHexString(resource) + ")");
         }
-
+		/**
+		 * 获取解析器XmlResourceParser：它包含解析后xml布局信息，
+		 * 通过它，可以获得xml中各种标签的信息，甚至你可以简化的看做是一个包含xml格式字符串的缓存对象
+		 */
         final XmlResourceParser parser = res.getLayout(resource);
         try {
+			/**
+			 * 调用重载方法
+			 */
             return inflate(parser, root, attachToRoot);
         } finally {
             parser.close();
@@ -451,11 +457,14 @@ public abstract class LayoutInflater {
     public View inflate(XmlPullParser parser, @Nullable ViewGroup root, boolean attachToRoot) {
         synchronized (mConstructorArgs) {
             Trace.traceBegin(Trace.TRACE_TAG_VIEW, "inflate");
-
+			// mContext是通过LayoutInflater的构造方法传进来的的context，这里一般不调用构造方法，所以基本是null
             final Context inflaterContext = mContext;
             final AttributeSet attrs = Xml.asAttributeSet(parser);
+			// mConstructorArgs保存了构造方法的参数值信息，第一个是context，第二个是attr
+            // 这里先将参数的lastContext临时保存，在最后的位置再进行恢复
             Context lastContext = (Context) mConstructorArgs[0];
             mConstructorArgs[0] = inflaterContext;
+			// 解析以后最终的View树
             View result = root;
 
             try {
@@ -470,7 +479,7 @@ public abstract class LayoutInflater {
                     throw new InflateException(parser.getPositionDescription()
                             + ": No start tag found!");
                 }
-
+				//name是根节点标签
                 final String name = parser.getName();
 
                 if (DEBUG) {
@@ -479,16 +488,20 @@ public abstract class LayoutInflater {
                             + name);
                     System.out.println("**************************");
                 }
-
+				// 根布局是Merge标签
                 if (TAG_MERGE.equals(name)) {
+					// merge标签必须嵌套到对应的父布局中来使用。所以如果root是空或者merge不绑定到布局中，那么就报错
                     if (root == null || !attachToRoot) {
                         throw new InflateException("<merge /> can be used only with a valid "
                                 + "ViewGroup root and attachToRoot=true");
                     }
-
+					// 进行布局文件的绘制
                     rInflate(parser, root, inflaterContext, attrs, false);
                 } else {
                     // Temp is the root view that was found in the xml
+                    /**
+                     * 通过标签来创建View
+                     */
                     final View temp = createViewFromTag(root, name, inflaterContext, attrs);
 
                     ViewGroup.LayoutParams params = null;
@@ -499,10 +512,18 @@ public abstract class LayoutInflater {
                                     root);
                         }
                         // Create layout params that match root, if supplied
+                        /**
+                         * 根据要创建的布局的属性以及root的信息，生成布局对应的params信息
+                         */
                         params = root.generateLayoutParams(attrs);
                         if (!attachToRoot) {
                             // Set the layout params for temp if we are not
                             // attaching. (If we are, we use addView, below)
+                            /**
+                             * 根据attachToRoot标志，来判断是否将相关布局参数设置给xml的RootView
+                             * 我们一般会传入false，就是说它会通过generateLayoutParams解析xml中RootView的参数，然后进行设置
+                             * 如果传入true，那么则需要我们手动听过代码设置根布局的参数（也就是需要动态添加view和参数）
+                             */
                             temp.setLayoutParams(params);
                         }
                     }
@@ -512,6 +533,7 @@ public abstract class LayoutInflater {
                     }
 
                     // Inflate all children under temp against its context.
+                    // 绘制子控件，并添加到temp中
                     rInflateChildren(parser, temp, attrs, true);
 
                     if (DEBUG) {
@@ -520,12 +542,14 @@ public abstract class LayoutInflater {
 
                     // We are supposed to attach all the views we found (int temp)
                     // to root. Do that now.
+                    // 如果设置了root，并且要添加到父控件，那么就进行rooot.addView操作
                     if (root != null && attachToRoot) {
                         root.addView(temp, params);
                     }
 
                     // Decide whether to return the root that was passed in or the
                     // top view found in xml.
+                    // 如果root为空或者不添加到父控件。则直接返回绘制的view
                     if (root == null || !attachToRoot) {
                         result = temp;
                     }
@@ -591,8 +615,10 @@ public abstract class LayoutInflater {
      */
     public final View createView(String name, String prefix, AttributeSet attrs)
             throws ClassNotFoundException, InflateException {
+        // 从缓存中获取构造方法
         Constructor<? extends View> constructor = sConstructorMap.get(name);
         if (constructor != null && !verifyClassLoader(constructor)) {
+			// 如果缓存的类加载器不是根加载器中的不一致
             constructor = null;
             sConstructorMap.remove(name);
         }
@@ -603,6 +629,7 @@ public abstract class LayoutInflater {
 
             if (constructor == null) {
                 // Class not found in the cache, see if it's real, and try to add it
+                // 获取clazz文件
                 clazz = mContext.getClassLoader().loadClass(
                         prefix != null ? (prefix + name) : name).asSubclass(View.class);
 
@@ -612,6 +639,10 @@ public abstract class LayoutInflater {
                         failNotAllowed(name, prefix, attrs);
                     }
                 }
+				/**
+				 * 获取构造方法，获取的是参数为(Context.class, AttributeSet)的那个构造方法
+				 * 这就是为什么自定义控件必须覆写第二个构造方法
+				 */
                 constructor = clazz.getConstructor(mConstructorSignature);
                 constructor.setAccessible(true);
                 sConstructorMap.put(name, constructor);
@@ -643,10 +674,11 @@ public abstract class LayoutInflater {
             }
             Object[] args = mConstructorArgs;
             args[1] = attrs;
-
+			// 调用构造函数，生成View类，args是两个参数的构造方法，所以也就是我们xml中写的布局，其实最后都会调用两个参数的那个构造方法
             final View view = constructor.newInstance(args);
             if (view instanceof ViewStub) {
                 // Use the same context when inflating ViewStub later.
+                // 如果是ViewStub类
                 final ViewStub viewStub = (ViewStub) view;
                 viewStub.setLayoutInflater(cloneInContext((Context) args[0]));
             }
@@ -752,12 +784,14 @@ public abstract class LayoutInflater {
         }
 
         // Apply a theme wrapper, if allowed and one is specified.
+        // 进行主题的处理
         if (!ignoreThemeAttr) {
             final TypedArray ta = context.obtainStyledAttributes(attrs, ATTRS_THEME);
             final int themeResId = ta.getResourceId(0, 0);
             if (themeResId != 0) {
                 context = new ContextThemeWrapper(context, themeResId);
             }
+			// 资源回收
             ta.recycle();
         }
 
@@ -767,7 +801,9 @@ public abstract class LayoutInflater {
         }
 
         try {
+			// 尝试通过Factory来创建View。这里是个hook的点，如果没有设置的话，会返回 null
             View view;
+			// HOOK点 根据设置的各种Factory，通过其 onCreateView() 方法进行View的创建。
             if (mFactory2 != null) {
                 view = mFactory2.onCreateView(parent, name, context, attrs);
             } else if (mFactory != null) {
@@ -781,10 +817,15 @@ public abstract class LayoutInflater {
             }
 
             if (view == null) {
+				// 如果创建的view为空，那么就尝试从系统的控件中加载
                 final Object lastContext = mConstructorArgs[0];
                 mConstructorArgs[0] = context;
                 try {
-                    if (-1 == name.indexOf('.')) {
+					/**
+					 * 根据name是否包含“.”来判断是否是自定义view。一般自定义的View是包含.的，
+                     * 其实最终都会调用createView方法。系统自带的View，会将prefix设置为“android.view”，然后调用createView方法
+					 */
+                    if (-1 == name. ('.')) {
                         view = onCreateView(parent, name, attrs);
                     } else {
                         view = createView(name, null, attrs);
@@ -830,6 +871,9 @@ public abstract class LayoutInflater {
      * <p>
      * <strong>Note:</strong> Default visibility so the BridgeInflater can
      * override it.
+     * 
+     * 
+     * 递归方法，用于向下传递xml层次结构并实例化视图、实例化其子视图，然后调用onfinishinfl()
      */
     void rInflate(XmlPullParser parser, View parent, Context context,
             AttributeSet attrs, boolean finishInflate) throws XmlPullParserException, IOException {
@@ -845,24 +889,31 @@ public abstract class LayoutInflater {
                 continue;
             }
 
+			// 获取标签名
             final String name = parser.getName();
 
             if (TAG_REQUEST_FOCUS.equals(name)) {
                 pendingRequestFocus = true;
                 consumeChildElements(parser);
             } else if (TAG_TAG.equals(name)) {
+
+				// tag标签
                 parseViewTag(parser, parent, attrs);
             } else if (TAG_INCLUDE.equals(name)) {
+				// include标签不能是根标签
                 if (parser.getDepth() == 0) {
+					// merge标签必须是布局的根元素
                     throw new InflateException("<include /> cannot be the root element");
                 }
                 parseInclude(parser, context, parent, attrs);
             } else if (TAG_MERGE.equals(name)) {
                 throw new InflateException("<merge /> must be the root element");
             } else {
+				// 调用createViewFromTag方法，生成对应的view，然后将子view添加到parent布局中
                 final View view = createViewFromTag(parent, name, context, attrs);
                 final ViewGroup viewGroup = (ViewGroup) parent;
                 final ViewGroup.LayoutParams params = viewGroup.generateLayoutParams(attrs);
+				// 遍历view下面的子控件
                 rInflateChildren(parser, view, attrs, true);
                 viewGroup.addView(view, params);
             }

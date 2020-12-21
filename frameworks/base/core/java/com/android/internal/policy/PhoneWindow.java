@@ -429,7 +429,8 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         } else {
 			/**	
 			 *	通过 LayoutInflater 去解析xml
-			 *
+			 *	layoutResID 就是传入的xml
+			 *	mContentParent 就是id为content的FrameLayout
 			 */
             mLayoutInflater.inflate(layoutResID, mContentParent);
         }
