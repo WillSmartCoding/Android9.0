@@ -82,11 +82,21 @@ public class ResourcesManager {
      * A mapping of ResourceImpls and their configurations. These are heavy weight objects
      * which should be reused as much as possible.
      */
+     
+	/**
+     * ResourceImpls及其配置的映射。 这些都是占用较大内存的数据
+     * 应该尽可能重用。所有的由ResourcesManager生成的ResourcesImpl都会被缓存在这个map中
+     */
     private final ArrayMap<ResourcesKey, WeakReference<ResourcesImpl>> mResourceImpls =
             new ArrayMap<>();
 
     /**
      * A list of Resource references that can be reused.
+     */
+     
+    /**
+     * 可以重用的资源引用列表。注意一下 这个list里面存储的并不是Activity的Resources缓存，
+     * 按照我的理解，所有非Activcity的Resource都会被缓存在此处，比如Application的Resource
      */
     private final ArrayList<WeakReference<Resources>> mResourceReferences = new ArrayList<>();
 
@@ -143,6 +153,11 @@ public class ResourcesManager {
     /**
      * Each Activity may has a base override configuration that is applied to each Resources object,
      * which in turn may have their own override configuration specified.
+     * 
+     * 每个Activity都有一个基本覆盖配置，该配置应用于每个Resources对象，而这些对象又可以指定自己的覆盖配置。
+     * 这个缓存里面保存的都是Actrivity的Resource的缓存，ActivityResources是一个对象，
+     * 里面包含了一个Activity所拥有的Configuration和所有可能拥有过的Resources，比如一个Activity，
+     * 在某些情况下他的ResourcesImpl发生了变化，那么这个时候就ActivityResources就可能会持有多个Resource引用
      */
     private final WeakHashMap<IBinder, ActivityResources> mActivityResourceReferences =
             new WeakHashMap<>();

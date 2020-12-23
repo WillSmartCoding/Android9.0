@@ -5855,6 +5855,9 @@ public final class ActivityThread extends ClientTransactionHandler {
         try {
             // If the app is being launched for full backup or restore, bring it up in
             // a restricted environment with the base application class.
+            /**
+             * 初始化Application
+             */
             app = data.info.makeApplication(data.restrictedBackupMode, null);
 
             // Propagate autofill compat state
@@ -5875,6 +5878,9 @@ public final class ActivityThread extends ClientTransactionHandler {
 
             // Do this after providers, since instrumentation tests generally start their
             // test thread at this point, and we don't want that racing.
+            /**
+             * 调用 Application 的onCreate方法
+             */
             try {
                 mInstrumentation.onCreate(data.instrumentationArgs);
             }
@@ -5884,6 +5890,9 @@ public final class ActivityThread extends ClientTransactionHandler {
                     + data.instrumentationName + ": " + e.toString(), e);
             }
             try {
+            	/**
+             	 * 调用 Application 的onCreate方法
+             	 */				
                 mInstrumentation.callApplicationOnCreate(app);
             } catch (Exception e) {
                 if (!mInstrumentation.onException(app, e)) {

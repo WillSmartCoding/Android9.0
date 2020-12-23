@@ -85,14 +85,23 @@ public abstract class LayoutInflater {
     private Factory2 mPrivateFactory;
     private Filter mFilter;
 
+	/**
+	 * mConstructorArgs保存了构造方法的参数值信息，第一个是context，第二个是attr
+	 * 也就是view的第二个构造方法参数
+	 */
     final Object[] mConstructorArgs = new Object[2];
 
     static final Class<?>[] mConstructorSignature = new Class[] {
             Context.class, AttributeSet.class};
 
+	/**
+	 * 缓存解析xml中 View 的构造器
+	 */
     private static final HashMap<String, Constructor<? extends View>> sConstructorMap =
             new HashMap<String, Constructor<? extends View>>();
-
+	/**
+	 * 缓存View 状态的过滤器
+	 */
     private HashMap<String, Boolean> mFilterMap;
 
     private TypedValue mTempValue;
@@ -579,13 +588,16 @@ public abstract class LayoutInflater {
     private static final ClassLoader BOOT_CLASS_LOADER = LayoutInflater.class.getClassLoader();
 
     private final boolean verifyClassLoader(Constructor<? extends View> constructor) {
+		// 通过view 的构造器拿到Class对象 再拿到ClassLoader
         final ClassLoader constructorLoader = constructor.getDeclaringClass().getClassLoader();
         if (constructorLoader == BOOT_CLASS_LOADER) {
             // fast path for boot class loader (most common case?) - always ok
+            // 引导类加载程序的快速路径（最常见的情况？）-总是好的
             return true;
         }
         // in all normal cases (no dynamic code loading), we will exit the following loop on the
         // first iteration (i.e. when the declaring classloader is the contexts class loader).
+        // 在所有正常情况下（没有动态代码加载），我们将在第一次迭代时退出以下循环（即，当声明的类加载器是上下文类加载器时）。
         ClassLoader cl = mContext.getClassLoader();
         do {
             if (constructorLoader == cl) {
@@ -618,7 +630,7 @@ public abstract class LayoutInflater {
         // 从缓存中获取构造方法
         Constructor<? extends View> constructor = sConstructorMap.get(name);
         if (constructor != null && !verifyClassLoader(constructor)) {
-			// 如果缓存的类加载器不是根加载器中的不一致
+			// 如果缓存的类加载器和根加载器中的不一致
             constructor = null;
             sConstructorMap.remove(name);
         }
@@ -627,12 +639,18 @@ public abstract class LayoutInflater {
         try {
             Trace.traceBegin(Trace.TRACE_TAG_VIEW, name);
 
+			/**
+			 * 1.缓存中没有找到相同的类加载器
+			 * 2.以name加载相应view 的Class
+			 * 3.检测Class是否允许使用，不允许抛出异常，允许获取构造器，并添加到缓存中
+			 */
             if (constructor == null) {
                 // Class not found in the cache, see if it's real, and try to add it
                 // 获取clazz文件
                 clazz = mContext.getClassLoader().loadClass(
                         prefix != null ? (prefix + name) : name).asSubclass(View.class);
 
+				// 检查 clazz，如果allowed为false则抛出异常
                 if (mFilter != null && clazz != null) {
                     boolean allowed = mFilter.onLoadClass(clazz);
                     if (!allowed) {
@@ -646,6 +664,11 @@ public abstract class LayoutInflater {
                 constructor = clazz.getConstructor(mConstructorSignature);
                 constructor.setAccessible(true);
                 sConstructorMap.put(name, constructor);
+				/**
+				 * 因为else中证明 sConstructorMap 中是有缓存的，
+				 * 所以只需要从状态缓存中去查看当前 clazz 的允许Inflated的状态
+				 * 否则就抛出异常
+				 */
             } else {
                 // If we have a filter, apply it to cached constructor
                 if (mFilter != null) {
@@ -713,6 +736,7 @@ public abstract class LayoutInflater {
 
     /**
      * Throw an exception because the specified class is not allowed to be inflated.
+     * 引发异常，因为指定的类不允许膨胀。
      */
     private void failNotAllowed(String name, String prefix, AttributeSet attrs) {
         throw new InflateException(attrs.getPositionDescription()

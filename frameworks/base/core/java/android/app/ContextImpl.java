@@ -2345,8 +2345,14 @@ class ContextImpl extends Context {
 
     static ContextImpl createAppContext(ActivityThread mainThread, LoadedApk packageInfo) {
         if (packageInfo == null) throw new IllegalArgumentException("packageInfo");
+		/**
+		 * 通过new的方式创建 Context 上下文对象
+		 */
         ContextImpl context = new ContextImpl(null, mainThread, packageInfo, null, null, null, 0,
                 null);
+		/**
+		 * 从包信息中去获取资源 其实就是从apk中去获取资源
+		 */
         context.setResources(packageInfo.getResources());
         return context;
     }
