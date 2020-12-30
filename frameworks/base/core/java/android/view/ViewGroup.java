@@ -2628,15 +2628,16 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
             if (actionMasked == MotionEvent.ACTION_DOWN
                     || mFirstTouchTarget != null) {
                 /**
-                 * disallowIntercept不允许拦截
+                 * disallowIntercept 是否开启不允许拦截标志
                  * FLAG_DISALLOW_INTERCEPT = 0x80000 = 1000 0000 0000 0000 0000
                  * 
                  */
                 final boolean disallowIntercept = (mGroupFlags & FLAG_DISALLOW_INTERCEPT) != 0;
-                if (!disallowIntercept) {
+                if (!disallowIntercept) {	// 未开启不允许拦截标志
+                	// 调用 onInterceptTouchEvent 判断是否需要拦截
                     intercepted = onInterceptTouchEvent(ev);
-                    ev.setAction(action); // restore action in case it was changed
-                } else {
+                    ev.setAction(action); 	// restore action in case it was changed
+                } else {					// 开启不允许拦截标志
                     intercepted = false;
                 }
             } else {
@@ -2644,33 +2645,32 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
                 intercepted = true;
             }
 
-            // If intercepted, start normal event dispatch. Also if there is already
-            // a view that is handling the gesture, do normal event dispatch.
+            // 如果被拦截，则启动正常事件调度。另外，如果已经有一个视图正在处理该手势，则执行常规事件调度。
             if (intercepted || mFirstTouchTarget != null) {
                 ev.setTargetAccessibilityFocus(false);
             }
 
-            // Check for cancelation.
+            // 检查事件是否取消。暂时不用管 cancel状态属于异常
             final boolean canceled = resetCancelNextUpFlag(this)
                     || actionMasked == MotionEvent.ACTION_CANCEL;
 
-            // Update list of touch targets for pointer down, if needed.
+            // 如果需要，更新指针向下的触摸目标列表。
             final boolean split = (mGroupFlags & FLAG_SPLIT_MOTION_EVENTS) != 0;
 
 			//这两个对象记一下，后面会碰到
             TouchTarget newTouchTarget = null;
             boolean alreadyDispatchedToNewTouchTarget = false;
-            if (!canceled && !intercepted) {
+            if (!canceled && !intercepted) {// 没有取消也没有拦截
 
-                // If the event is targeting accessibility focus we give it to the
-                // view that has accessibility focus and if it does not handle it
-                // we clear the flag and dispatch the event to all children as usual.
-                // We are looking up the accessibility focused host to avoid keeping
-                // state since these events are very rare.
+                /**
+                 * 如果事件以可访问性焦点为目标，我们将其交给具有可访问性焦点的视图，
+                 * 如果它不处理它，我们将清除标志并像往常一样将事件分派给所有子级。
+                 * 我们正在查找以可访问性为中心的主机，以避免保留状态，因为这些事件非常罕见。
+                 */
                 View childWithAccessibilityFocus = ev.isTargetAccessibilityFocus()
                         ? findChildWithAccessibilityFocus() : null;
 
-				// 这里就开始对事件类型区分了，如果是ACTION_DOWN，那么就算是一个新的事件序列开始
+				// 这里就开始对事件类型区分了，如果是ACTION_DOWN、ACTION_POINTER_DOWN或者ACTION_HOVER_MOVE 那么就算是一个新的事件序列开始
                 if (actionMasked == MotionEvent.ACTION_DOWN
                         || (split && actionMasked == MotionEvent.ACTION_POINTER_DOWN)
                         || actionMasked == MotionEvent.ACTION_HOVER_MOVE) {
@@ -2678,11 +2678,13 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
                     final int idBitsToAssign = split ? 1 << ev.getPointerId(actionIndex)
                             : TouchTarget.ALL_POINTER_IDS;
 
-                    // Clean up earlier touch targets for this pointer id in case they
-                    // have become out of sync.
+					//清除此指针id的早期触摸目标，以防它们不同步。
                     removePointersFromTouchTargets(idBitsToAssign);
 
-					// 准备一下，接下来开始遍历自己的子View们
+					/**
+					 * 准备一下，接下来开始遍历自己的子View们
+					 * 其实就是找到处理事件的子view 赋值给newTouchTarget 也就是 mFirstTouchTarget
+					 */
                     final int childrenCount = mChildrenCount;
                     if (newTouchTarget == null && childrenCount != 0) {
 
@@ -2905,6 +2907,7 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
     /**
      * Resets the cancel next up flag.
      * Returns true if the flag was previously set.
+     * 重置“取消下一步”标志。如果先前设置了标志，则返回true。
      */
     private static boolean resetCancelNextUpFlag(@NonNull View view) {
         if ((view.mPrivateFlags & PFLAG_CANCEL_NEXT_UP_EVENT) != 0) {

@@ -2344,6 +2344,9 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
 
     /**
      * Indicates whether the view is temporarily detached.
+     * 指示是否临时分离视图。
+     * 一个View如果有PFLAG_CANCEL_NEXT_UP_EVENT标志，表示它跟ViewGroup解除了绑定，
+     * 通常会在调用ViewGroup#detachViewFromParent(View)后被添加。一般不会有这个标记的。
      *
      * @hide
      */
