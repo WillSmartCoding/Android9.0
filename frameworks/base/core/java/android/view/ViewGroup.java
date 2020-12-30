@@ -127,6 +127,8 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
      * their way out.
      * This field should be made private, so it is hidden from the SDK.
      * {@hide}
+     * 
+     * 已隐藏或删除的视图，需要在退出时设置动画。
      */
     protected ArrayList<View> mDisappearingChildren;
 
@@ -135,47 +137,60 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
      * and/or removed from a view group.
      * This field should be made private, so it is hidden from the SDK.
      * {@hide}
+     *
+     * 侦听器用于传播事件，指示何时从视图组中添加和/或删除子对象。
      */
     protected OnHierarchyChangeListener mOnHierarchyChangeListener;
 
     // The view contained within this ViewGroup that has or contains focus.
+    // 此视图组中包含的具有或包含焦点的视图。
     private View mFocused;
     // The view contained within this ViewGroup (excluding nested keyboard navigation clusters)
     // that is or contains a default-focus view.
+    // 此视图组中包含的视图（不包括嵌套的键盘导航群集）
+	// 它是或包含默认焦点视图。
     private View mDefaultFocus;
     // The last child of this ViewGroup which held focus within the current cluster
+    // 此视图组中在当前群集中保持焦点的最后一个子级
     View mFocusedInCluster;
 
     /**
      * A Transformation used when drawing children, to
      * apply on the child being drawn.
+     * 绘制子对象时使用的一种变换，应用于正在绘制的子对象。
      */
     private Transformation mChildTransformation;
 
     /**
      * Used to track the current invalidation region.
+     * 用于跟踪当前失效区域。
      */
     RectF mInvalidateRegion;
 
     /**
      * A Transformation used to calculate a correct
      * invalidation area when the application is autoscaled.
+     * 当应用程序自动缩放时，用于计算正确失效区域的转换。
      */
     Transformation mInvalidationTransformation;
 
     // Current frontmost child that can accept drag and lies under the drag location.
     // Used only to generate ENTER/EXIT events for pre-Nougat aps.
+    // 当前最前面的可以接受拖动并位于拖动下的子对象位置。已使用仅为 pre-Nougat 生成 ENTER/EXIT 事件。
     private View mCurrentDragChild;
 
     // Metadata about the ongoing drag
+    // 关于正在进行的拖动的元数据
     private DragEvent mCurrentDragStartEvent;
     private boolean mIsInterestedInDrag;
     private HashSet<View> mChildrenInterestedInDrag;
 
     // Used during drag dispatch
+    // 拖动调度期间使用
     private PointF mLocalPoint;
 
     // Lazily-created holder for point computations.
+    // Lazily-created holder 创建点计算的持有者。
     private float[] mTempPoint;
 
     // Layout animation
@@ -183,9 +198,11 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
     private Animation.AnimationListener mAnimationListener;
 
     // First touch target in the linked list of touch targets.
+    // 单链表：记录多收指触摸，mFirstTouchTarget是刚加入链表的TouchTarget next指向旧的TouchTarget 如果是第一次添加则next是null。
     private TouchTarget mFirstTouchTarget;
 
     // For debugging only.  You can see these in hierarchyviewer.
+    // 仅用于调试。您可以在hierarchyviewer中看到这些。
     @SuppressWarnings({"FieldCanBeLocal", "UnusedDeclaration"})
     @ViewDebug.ExportedProperty(category = "events")
     private long mLastTouchDownTime;
@@ -203,17 +220,27 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
     // They might not have actually handled the hover event, but we will
     // continue sending hover events to them as long as the pointer remains over
     // their bounds and the view group does not intercept hover.
+    // 悬停目标链接列表中的第一个悬停目标。
+	// 悬停目标是已接收操作 ACTION_HOVER_ENTER 的子对象。
+	// 他们可能没有真正处理悬停事件，但我们会的
+	// 只要指针还在上面，就继续向它们发送悬停事件
+	// 它们的边界和视图组不截取悬停。
     private HoverTarget mFirstHoverTarget;
 
     // True if the view group itself received a hover event.
     // It might not have actually handled the hover event.
+    // 如果视图组本身接收到悬停事件，则为True。
+	// 它可能没有实际处理悬停事件。
     private boolean mHoveredSelf;
 
     // The child capable of showing a tooltip and currently under the pointer.
+    // 能够显示工具提示且当前位于指针下的子级。
     private View mTooltipHoverTarget;
 
     // True if the view group is capable of showing a tooltip and the pointer is directly
     // over the view group but not one of its child views.
+    // 如果视图组能够显示工具提示并且指针直接指向
+	// 覆盖视图组，但不覆盖其子视图之一。
     private boolean mTooltipHoveredSelf;
 
     /**
@@ -240,30 +267,44 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
     /**
      * NOTE: If you change the flags below make sure to reflect the changes
      *       the DisplayList class
+     * 
+     * 注意：如果您更改下面的标志，请确保反映DisplayList类的更改
      */
 
     // When set, ViewGroup invalidates only the child's rectangle
     // Set by default
+    // 设置后，ViewGroup仅使子对象的矩形无效
+	// 默认设置
     static final int FLAG_CLIP_CHILDREN = 0x1;
 
     // When set, ViewGroup excludes the padding area from the invalidate rectangle
     // Set by default
+    // 设置后，ViewGroup将从无效矩形中排除填充区域
+	// 默认设置
     private static final int FLAG_CLIP_TO_PADDING = 0x2;
 
     // When set, dispatchDraw() will invoke invalidate(); this is set by drawChild() when
     // a child needs to be invalidated and FLAG_OPTIMIZE_INVALIDATE is set
+    
+	//设置时，dispatchDraw() 将调用invalidate()；
+	//当需要使子级无效并设置 FLAG_OPTIMIZE_INVALIDATE 时，这是由drawChild()设置的
     static final int FLAG_INVALIDATE_REQUIRED  = 0x4;
 
     // When set, dispatchDraw() will run the layout animation and unset the flag
+    // 设置后，dispatchDraw() 将运行布局动画并取消设置标志
     private static final int FLAG_RUN_ANIMATION = 0x8;
 
     // When set, there is either no layout animation on the ViewGroup or the layout
     // animation is over
     // Set by default
+    // 设置后，视图组或布局上没有布局动画
+	// 动画结束了
+	// 默认设置
     static final int FLAG_ANIMATION_DONE = 0x10;
 
     // If set, this ViewGroup has padding; if unset there is no padding and we don't need
     // to clip it, even if FLAG_CLIP_TO_PADDING is set
+    // 如果已设置，则此视图组有填充；如果未设置，则没有填充，即使已设置 FLAG_CLIP_TO_PADDING，也不需要剪裁它
     private static final int FLAG_PADDING_NOT_NULL = 0x20;
 
     /** @deprecated - functionality removed */
@@ -274,20 +315,26 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
     // layout animation; this avoid clobbering the hierarchy
     // Automatically set when the layout animation starts, depending on the animation's
     // characteristics
+    // 设置后，此ViewGroup会在布局动画期间将对invalidate(Rect) 的调用转换为invalidate() ；这样可以避免破坏层次结构
+	// 根据动画的特性，在布局动画开始时自动设置
     static final int FLAG_OPTIMIZE_INVALIDATE = 0x80;
 
     // When set, the next call to drawChild() will clear mChildTransformation's matrix
+    // 设置后，对drawChild() 的下一个调用将清除mChildTransformation的矩阵
     static final int FLAG_CLEAR_TRANSFORMATION = 0x100;
 
     // When set, this ViewGroup invokes mAnimationListener.onAnimationEnd() and removes
     // the children's Bitmap caches if necessary
     // This flag is set when the layout animation is over (after FLAG_ANIMATION_DONE is set)
+    // 设置后，此ViewGroup将调用 mAnimationListener.onAnimationEnd() ，并在必要时删除子位图缓存
+	// 此标志在布局动画结束时设置（设置标志 FLAG_ANIMATION_DONE 后）
     private static final int FLAG_NOTIFY_ANIMATION_LISTENER = 0x200;
 
     /**
      * When set, the drawing method will call {@link #getChildDrawingOrder(int, int)}
      * to get the index of the child to draw for that iteration.
      *
+     * 设置后，drawing方法将调用{@link #getChildDrawingOrder(int, int)}，以获取要为该迭代绘制的子对象的索引。
      * @hide
      */
     protected static final int FLAG_USE_CHILD_DRAWING_ORDER = 0x400;
@@ -354,12 +401,14 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
 
     /**
      * When set, this ViewGroup should not intercept touch events.
+     * 设置后，此视图组不应截获触摸事件。
      * {@hide}
      */
     protected static final int FLAG_DISALLOW_INTERCEPT = 0x80000;
 
     /**
      * When set, this ViewGroup will split MotionEvents to multiple child Views when appropriate.
+     * 设置后，此ViewGroup将在适当时将MotionEvents拆分为多个子视图。
      */
     private static final int FLAG_SPLIT_MOTION_EVENTS = 0x200000;
 
@@ -367,6 +416,9 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
      * When set, this ViewGroup will not dispatch onAttachedToWindow calls
      * to children when adding new views. This is used to prevent multiple
      * onAttached calls when a ViewGroup adds children in its own onAttached method.
+     * 
+     * 设置后，添加新视图时，此视图组不会向子视图发送onAttachedToWindow调用。
+     * 这用于在ViewGroup在其自己的onAttached方法中添加子对象时防止多个onAttached调用。
      */
     private static final int FLAG_PREVENT_DISPATCH_ATTACHED_TO_WINDOW = 0x400000;
 
@@ -2540,6 +2592,7 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
+    	// 验证事件的一致性
         if (mInputEventConsistencyVerifier != null) {
             mInputEventConsistencyVerifier.onTouchEvent(ev, 1);
         }
@@ -2550,24 +2603,35 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
             ev.setTargetAccessibilityFocus(false);
         }
 
+		/**
+		 * 成员变量：handled是返回的结果，表示是否被分发，默认当然是
+		 * 注意成员变量意味着每次进来的初始化都是false。
+		 */
         boolean handled = false;
+		// 如果屏幕是模糊的就把事件丢弃掉
         if (onFilterTouchEventForSecurity(ev)) {
             final int action = ev.getAction();
+			// MotionEvent.ACTION_MASK 是0xFF 也就是1111 1111
             final int actionMasked = action & MotionEvent.ACTION_MASK;
 
-            // Handle an initial down.
+
+            // 判断一下是不是ACTION_DOWN，如果是的话，代表一个新的事件序列来临了
             if (actionMasked == MotionEvent.ACTION_DOWN) {
-                // Throw away all previous state when starting a new touch gesture.
-                // The framework may have dropped the up or cancel event for the previous gesture
-                // due to an app switch, ANR, or some other state change.
+                //要注意一下这两个方法，在这里会做一下相当于是“清零”的操作
+                //在这里包含了诸如mFirstTouchTarget=null这样的初始化操作
                 cancelAndClearTouchTargets(ev);
                 resetTouchState();
             }
 
-            // Check for interception.
+            // 成员变量：intercepted是用来记录是否被拦截的结果
             final boolean intercepted;
             if (actionMasked == MotionEvent.ACTION_DOWN
                     || mFirstTouchTarget != null) {
+                /**
+                 * disallowIntercept不允许拦截
+                 * FLAG_DISALLOW_INTERCEPT = 0x80000 = 1000 0000 0000 0000 0000
+                 * 
+                 */
                 final boolean disallowIntercept = (mGroupFlags & FLAG_DISALLOW_INTERCEPT) != 0;
                 if (!disallowIntercept) {
                     intercepted = onInterceptTouchEvent(ev);
@@ -2576,8 +2640,7 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
                     intercepted = false;
                 }
             } else {
-                // There are no touch targets and this action is not an initial down
-                // so this view group continues to intercept touches.
+                // 没有mFirstTouchTarget，同时事件为非ACTION_DOWN，那么就算要在这里拦截了
                 intercepted = true;
             }
 
@@ -2593,6 +2656,8 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
 
             // Update list of touch targets for pointer down, if needed.
             final boolean split = (mGroupFlags & FLAG_SPLIT_MOTION_EVENTS) != 0;
+
+			//这两个对象记一下，后面会碰到
             TouchTarget newTouchTarget = null;
             boolean alreadyDispatchedToNewTouchTarget = false;
             if (!canceled && !intercepted) {
@@ -2605,6 +2670,7 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
                 View childWithAccessibilityFocus = ev.isTargetAccessibilityFocus()
                         ? findChildWithAccessibilityFocus() : null;
 
+				// 这里就开始对事件类型区分了，如果是ACTION_DOWN，那么就算是一个新的事件序列开始
                 if (actionMasked == MotionEvent.ACTION_DOWN
                         || (split && actionMasked == MotionEvent.ACTION_POINTER_DOWN)
                         || actionMasked == MotionEvent.ACTION_HOVER_MOVE) {
@@ -2616,12 +2682,15 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
                     // have become out of sync.
                     removePointersFromTouchTargets(idBitsToAssign);
 
+					// 准备一下，接下来开始遍历自己的子View们
                     final int childrenCount = mChildrenCount;
                     if (newTouchTarget == null && childrenCount != 0) {
+
+						// 获取到点击的坐标，用来从子View中筛选出点击到的VIEW
                         final float x = ev.getX(actionIndex);
                         final float y = ev.getY(actionIndex);
-                        // Find a child that can receive the event.
-                        // Scan children from front to back.
+					
+                        // 按从后向前的顺序开始遍历子View们
                         final ArrayList<View> preorderedList = buildTouchDispatchChildList();
                         final boolean customOrder = preorderedList == null
                                 && isChildrenDrawingOrderEnabled();
@@ -2632,10 +2701,8 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
                             final View child = getAndVerifyPreorderedView(
                                     preorderedList, children, childIndex);
 
-                            // If there is a view that has accessibility focus we want it
-                            // to get the event first and if not handled we will perform a
-                            // normal dispatch. We may do a double iteration but this is
-                            // safer given the timeframe.
+                            // 其实筛选只是将不合适的View们过滤掉
+                            // 一个一个continue就表示在发现View不合适的时候直接进入下一次循环
                             if (childWithAccessibilityFocus != null) {
                                 if (childWithAccessibilityFocus != child) {
                                     continue;
@@ -2650,6 +2717,9 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
                                 continue;
                             }
 
+
+							// 终于找到了合适的子View,注意这里将子View封装为一个target
+							// 要是返回的结果不为空就跳出循环
                             newTouchTarget = getTouchTarget(child);
                             if (newTouchTarget != null) {
                                 // Child is already receiving touch within its bounds.
@@ -2658,6 +2728,7 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
                                 break;
                             }
 
+							// 就算返回结果为空也没关系，在这里继续递归的调用子View的dispatchTransformedTouchEvent()
                             resetCancelNextUpFlag(child);
                             if (dispatchTransformedTouchEvent(ev, false, child, idBitsToAssign)) {
                                 // Child wants to receive touch within its bounds.
@@ -2687,6 +2758,7 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
                         if (preorderedList != null) preorderedList.clear();
                     }
 
+					// 没有找到要接受事件的View
                     if (newTouchTarget == null && mFirstTouchTarget != null) {
                         // Did not find a child to receive the event.
                         // Assign the pointer to the least recently added target.
@@ -2699,21 +2771,26 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
                 }
             }
 
-            // Dispatch to touch targets.
+            // 接下来就是对于非ACTION_DOWN事件的分发了，这里有两种情况
             if (mFirstTouchTarget == null) {
-                // No touch targets so treat this as an ordinary view.
+                // 1.压根就没有找到要接受事件的view，或者被拦截了，
+                // 调用了自身的dispatchTransformedTouchEvent()且穿了一个null的View进去，
+                // 这样有什么用呢？需要后面分析dispatchTransformedTouchEvent()
                 handled = dispatchTransformedTouchEvent(ev, canceled, null,
                         TouchTarget.ALL_POINTER_IDS);
             } else {
-                // Dispatch to touch targets, excluding the new touch target if we already
-                // dispatched to it.  Cancel touch targets if necessary.
+                // 2.有View接受ACTION_DOWN事件，那么这个View也将接受其余的事件
                 TouchTarget predecessor = null;
                 TouchTarget target = mFirstTouchTarget;
                 while (target != null) {
                     final TouchTarget next = target.next;
                     if (alreadyDispatchedToNewTouchTarget && target == newTouchTarget) {
+						// alreadyDispatchedToNewTouchTarget这个变量在前面View接受ACTION_DOWN事件时设为了true
+						// 同时这个mFirstTouchTarget也就是那个View封装好的target
+						// 那么这个返回值handled就为true
                         handled = true;
                     } else {
+                    	// 对于非ACTION_DOWN事件，依然是递归调用dispatchTransformedTouchEvent
                         final boolean cancelChild = resetCancelNextUpFlag(target.child)
                                 || intercepted;
                         if (dispatchTransformedTouchEvent(ev, cancelChild,
@@ -2736,7 +2813,7 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
                 }
             }
 
-            // Update list of touch targets for pointer up or cancel, if needed.
+            // 处理ACTION_UP和ACTION_CANCEL
             if (canceled
                     || actionMasked == MotionEvent.ACTION_UP
                     || actionMasked == MotionEvent.ACTION_HOVER_MOVE) {
@@ -2798,8 +2875,29 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
      * Resets all touch state in preparation for a new cycle.
      */
     private void resetTouchState() {
+    	// 清空链表
         clearTouchTargets();
+		// 
         resetCancelNextUpFlag(this);
+		/**
+		 *  FLAG_DISALLOW_INTERCEPT = 00000000 00001000 00000000 00000000
+		 * ~FLAG_DISALLOW_INTERCEPT = 11111111 11110111 11111111 11111111	(非运算，取反)
+		 *
+		 *	然后不管之前有没有设置过 FLAG_DISALLOW_INTERCEPT 标志位 进行&运算后都会将当前标志位清空，且不影响其他标志位
+		 *
+		 *	设置过：mGroupFlags 					= 00000000 00001000 00000000 00000000
+		 *			~FLAG_DISALLOW_INTERCEPT	= 11111111 11110111 11111111 11111111
+		 *          &与运算------------------------------------------------------------
+		 *			结果：							= 00000000 00000000 00000000 00000000
+		 *
+		 *	未设置过：mGroupFlags 					= 00000000 00000000 00000000 00000000
+		 *			~FLAG_DISALLOW_INTERCEPT	= 11111111 11110111 11111111 11111111
+		 *          &与运算------------------------------------------------------------
+		 *			结果：							= 00000000 00000000 00000000 00000000
+		 *
+		 *	所以，通过与运算将 INTERCEPT 拦截事件的标志位清除
+		 *
+		 */
         mGroupFlags &= ~FLAG_DISALLOW_INTERCEPT;
         mNestedScrollAxes = SCROLL_AXIS_NONE;
     }
@@ -2818,6 +2916,7 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
 
     /**
      * Clears all touch targets.
+     * 将链表中的Touch事件清空，mFirstTouchTarget = null
      */
     private void clearTouchTargets() {
         TouchTarget target = mFirstTouchTarget;
@@ -2873,6 +2972,18 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
     /**
      * Adds a touch target for specified child to the beginning of the list.
      * Assumes the target child is not already present.
+     *
+     * 由方法名可以看出addTouchTarget是一个向链表中添加元素的方法，
+     * 首先用obtain方法获取一个新实例，再让这个新实例的next指向mfirsttouchtarget指向的实例，
+     * 再让mfirsttouchtarget指向这个新实例。
+     *
+     * 假如一开始链表里没有元素，此时mfirstouchtarget=null,
+     * 用addtouchtarget加入第一个元素target1，那target1.next==null，
+     * mfirsttouchtarget指向的也是target1。
+     * 接着加入第2个元素target2，target2.next==target1，mFirstTouchTarget==target2。
+     * 所以可以得出一个结论,mFirstTouchTarget指向的永远是刚加入链表的元素也就是表头，刚加入元素的next指向旧元素。
+     *
+     *
      */
     private TouchTarget addTouchTarget(@NonNull View child, int pointerIdBits) {
         final TouchTarget target = TouchTarget.obtain(child, pointerIdBits);
@@ -2989,8 +3100,7 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
             View child, int desiredPointerIdBits) {
         final boolean handled;
 
-        // Canceling motions is a special case.  We don't need to perform any transformations
-        // or filtering.  The important part is the action, not the contents.
+        // 处理ACTION_CANCEL.
         final int oldAction = event.getAction();
         if (cancel || oldAction == MotionEvent.ACTION_CANCEL) {
             event.setAction(MotionEvent.ACTION_CANCEL);
@@ -3021,12 +3131,13 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
         if (newPointerIdBits == oldPointerIdBits) {
             if (child == null || child.hasIdentityMatrix()) {
                 if (child == null) {
+					// 如果传来的参数child为空时，调用自身dispatchTouchEvent()
                     handled = super.dispatchTouchEvent(event);
                 } else {
                     final float offsetX = mScrollX - child.mLeft;
                     final float offsetY = mScrollY - child.mTop;
                     event.offsetLocation(offsetX, offsetY);
-
+					// 不为空，那么就调用他的dispatchTouchEvent()
                     handled = child.dispatchTouchEvent(event);
 
                     event.offsetLocation(-offsetX, -offsetY);
@@ -3135,18 +3246,20 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
     @Override
     public void requestDisallowInterceptTouchEvent(boolean disallowIntercept) {
 
+		// 已经设置过
         if (disallowIntercept == ((mGroupFlags & FLAG_DISALLOW_INTERCEPT) != 0)) {
             // We're already in this state, assume our ancestors are too
             return;
         }
 
-        if (disallowIntercept) {
+        if (disallowIntercept) {// 设置不拦截事件标志位
             mGroupFlags |= FLAG_DISALLOW_INTERCEPT;
-        } else {
+        } else {	// 清除拦截事件标志位状态
             mGroupFlags &= ~FLAG_DISALLOW_INTERCEPT;
         }
 
         // Pass it up to our parent
+        // 同样要告诉 parent 不要拦截
         if (mParent != null) {
             mParent.requestDisallowInterceptTouchEvent(disallowIntercept);
         }
@@ -8333,27 +8446,39 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
      * it can use a bitfield to track which pointer ids are present.
      * As it happens, the lower layers of the input dispatch pipeline also use the
      * same trick so the assumption should be safe here...
+     *
+     * 单链表
      */
     private static final class TouchTarget {
+    	// 链表最大容量
         private static final int MAX_RECYCLED = 32;
+		// 锁
         private static final Object sRecycleLock = new Object[0];
+		// 事件流链表头节点
         private static TouchTarget sRecycleBin;
+		// 当前链表长度
         private static int sRecycledCount;
 
         public static final int ALL_POINTER_IDS = -1; // all ones
 
-        // The touched child view.
+        // 被触摸的子view
         public View child;
 
         // The combined bit mask of pointer ids for all pointers captured by the target.
         public int pointerIdBits;
 
-        // The next target in the target list.
+        // 头节点的后继
         public TouchTarget next;
 
         private TouchTarget() {
         }
 
+		/**
+		 * 从表头获取target
+		 *
+		 * @param child
+		 * @param pointerIdBits
+		 */
         public static TouchTarget obtain(@NonNull View child, int pointerIdBits) {
             if (child == null) {
                 throw new IllegalArgumentException("child must be non-null");
@@ -8361,20 +8486,23 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
 
             final TouchTarget target;
             synchronized (sRecycleLock) {
-                if (sRecycleBin == null) {
+                if (sRecycleBin == null) {// 表头为空，new一个本类对象
                     target = new TouchTarget();
-                } else {
+                } else {// 否则就从表头获取
                     target = sRecycleBin;
                     sRecycleBin = target.next;
-                     sRecycledCount--;
+                     sRecycledCount--;// 链表长度--
                     target.next = null;
                 }
             }
-            target.child = child;
+            target.child = child;// 赋值子view和id
             target.pointerIdBits = pointerIdBits;
             return target;
         }
 
+		/**
+		 * 把this做为表头，老的表头赋给this的后继。头插法
+		 */
         public void recycle() {
             if (child == null) {
                 throw new IllegalStateException("already recycled once");

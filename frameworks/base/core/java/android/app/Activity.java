@@ -3212,6 +3212,15 @@ public class Activity extends ContextThemeWrapper
      * and touch-up actions that follow.
      *
      * @see #onUserLeaveHint()
+     * 每当按键、触摸或轨迹球事件被分派到Activity时调用。
+     * 如果希望知道用户在Activity运行时以某种方式与设备进行了交互，请实现此方法。
+     * 此回调和{@link #onUserLeaveHint}旨在帮助Activity智能地管理状态栏通知；
+     * 特别是帮助Activity确定取消通知的正确时间。
+	 *
+	 * <p>对Activity的{@link #onUserLeaveHint}回调的所有调用都将伴随对{@link #onUserInteraction}的调用。
+	 * 这样可以确保您的Activity将被告知相关的用户Activity，例如下拉通知窗格并触摸其中的项目。
+	 *
+	 * <p>请注意，此回调将为开始触摸手势的触控操作调用，但可能不会为随后的触控移动和触控操作调用。
      */
     public void onUserInteraction() {
     }
@@ -3395,8 +3404,12 @@ public class Activity extends ContextThemeWrapper
      */
     public boolean dispatchTouchEvent(MotionEvent ev) {
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
+			//当用户操作了按键或者触摸了屏幕，就会回调用该函数
             onUserInteraction();
         }
+		/**
+		 * 调用PhoneWindow的 superDispatchTouchEvent，如果反true则return。
+		 */
         if (getWindow().superDispatchTouchEvent(ev)) {
             return true;
         }

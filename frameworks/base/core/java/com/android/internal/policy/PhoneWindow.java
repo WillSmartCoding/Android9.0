@@ -1842,6 +1842,9 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
     @Override
     public boolean superDispatchTouchEvent(MotionEvent event) {
+    	/**
+    	 * 将事件传递给DecorView
+    	 */
         return mDecor.superDispatchTouchEvent(event);
     }
 
