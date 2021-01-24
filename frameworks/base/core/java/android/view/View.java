@@ -12489,6 +12489,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
             event.setTargetAccessibilityFocus(false);
         }
 
+		// 关键值，用于判断onTouchEvent()是否该执行
         boolean result = false;
 
         if (mInputEventConsistencyVerifier != null) {
@@ -12506,13 +12507,22 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
                 result = true;
             }
             //noinspection SimplifiableIfStatement
+            // ListenerInfo 通过getListenerInfo去拿，如果为null就会new创建 所以是100%创建了的
             ListenerInfo li = mListenerInfo;
+
+			/**
+			 * 短路&，li可以确认不为null，而mOnTouchListener 是我们在代码中通过view的setOnTouchListener去赋值的
+			 * li.mOnTouchListener.onTouch(this, event) 这句代码会执行 mOnTouchListener的onTouch方法，如果返回true代表处理了事件，代码到此结束
+			 */
             if (li != null && li.mOnTouchListener != null
                     && (mViewFlags & ENABLED_MASK) == ENABLED
                     && li.mOnTouchListener.onTouch(this, event)) {
                 result = true;
             }
 
+			/**
+			 * 如果在mOnTouchListener 的 onTouch方法中返回false，那么就会调用view的onTouchEvent方法，在这里面会处理事件的down move,up cancel等。
+			 */
             if (!result && onTouchEvent(event)) {
                 result = true;
             }

@@ -2592,7 +2592,7 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
-    	// 验证事件的一致性
+    	// 验证事件是否连续
         if (mInputEventConsistencyVerifier != null) {
             mInputEventConsistencyVerifier.onTouchEvent(ev, 1);
         }
