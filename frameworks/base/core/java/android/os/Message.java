@@ -490,8 +490,9 @@ public final class Message implements Parcelable {
         flags |= FLAG_IN_USE;
     }
 
-    /** Constructor (but the preferred way to get a Message is to call {@link #obtain() Message.obtain()}).
-    */
+    /** 
+     * 构造函数(但是获取消息的首选方法是调用{@link #obtain() Message.obtain()}).
+     */
     public Message() {
     }
 

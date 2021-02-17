@@ -58,20 +58,20 @@ public final class Looper {
     /*
      * API Implementation Note:
      *
-     * This class contains the code required to set up and manage an event loop
-     * based on MessageQueue.  APIs that affect the state of the queue should be
-     * defined on MessageQueue or Handler rather than on Looper itself.  For example,
-     * idle handlers and sync barriers are defined on the queue whereas preparing the
-     * thread, looping, and quitting are defined on the looper.
+	 * 此类包含基于MessageQueue设置和管理事件循环所需的代码。
+	 * 影响队列状态的api应该在MessageQueue或Handler上定义，而不是在Looper本身上定义。
+	 * 例如，空闲处理程序和同步屏障是在队列上定义的，而准备线程、循环和退出是在循环器上定义的。	
      */
 
     private static final String TAG = "Looper";
 
-    // sThreadLocal.get() will return null unless you've called prepare().
+    // streadlocal.get() 将返回null，除非调用prepare()。
     static final ThreadLocal<Looper> sThreadLocal = new ThreadLocal<Looper>();
     private static Looper sMainLooper;  // guarded by Looper.class
 
+	// 消息队列
     final MessageQueue mQueue;
+	// 当前创建的所在线程
     final Thread mThread;
 
     private Printer mLogging;
@@ -88,17 +88,20 @@ public final class Looper {
      */
     private long mSlowDeliveryThresholdMs;
 
-    /** Initialize the current thread as a looper.
-      * This gives you a chance to create handlers that then reference
-      * this looper, before actually starting the loop. Be sure to call
-      * {@link #loop()} after calling this method, and end it by calling
-      * {@link #quit()}.
+    /** 初始化当前线程的 Looper
+      * 这使您有机会在实际启动 Looper 之前创建引用此 Looper 的处理程序。
+      * 请确保在调用此方法后调用 {@link #loop()} ，并通过调用 {@link #quit()} 结束它。
       */
     public static void prepare() {
         prepare(true);
     }
 
+	/**
+	 * quitAllowed 如果可以退出消息队列，则为True。
+	 * 这个值是给 MessageQueue 初始化使用的
+	 */
     private static void prepare(boolean quitAllowed) {
+	    // 一个线程只能创建一次，第二次就抛异常了
         if (sThreadLocal.get() != null) {
             throw new RuntimeException("Only one Looper may be created per thread");
         }
@@ -106,6 +109,7 @@ public final class Looper {
     }
 
     /**
+     * android 的 main looper，由系统创建，不需要自己调用
      * Initialize the current thread as a looper, marking it as an
      * application's main looper. The main looper for your application
      * is created by the Android environment, so you should never need
@@ -135,10 +139,12 @@ public final class Looper {
      * {@link #quit()} to end the loop.
      */
     public static void loop() {
+    	// 判断当前线程的Looper是否已经创建
         final Looper me = myLooper();
         if (me == null) {
             throw new RuntimeException("No Looper; Looper.prepare() wasn't called on this thread.");
         }
+		// 获取消息队列
         final MessageQueue queue = me.mQueue;
 
         // Make sure the identity of this thread is that of the local process,
@@ -154,10 +160,11 @@ public final class Looper {
                         + Thread.currentThread().getName()
                         + ".slow", 0);
 
-        boolean slowDeliveryDetected = false;
+        boolean 	 = false;
 
         for (;;) {
             Message msg = queue.next(); // might block
+            // 当msg为null的时候会跳出死循环(调用Looper.quite()可以停止当前循环)
             if (msg == null) {
                 // No message indicates that the message queue is quitting.
                 return;
@@ -305,16 +312,18 @@ public final class Looper {
 
     /**
      * Quits the looper.
+     * 退出Looper
      * <p>
-     * Causes the {@link #loop} method to terminate without processing any
-     * more messages in the message queue.
+     *
+     * 导致 {@link #loop}方法终止，而不处理消息队列中的任何消息。
      * </p><p>
-     * Any attempt to post messages to the queue after the looper is asked to quit will fail.
-     * For example, the {@link Handler#sendMessage(Message)} method will return false.
+     *
+     * 在请求循环器退出后，任何向队列投递消息的尝试都将失败。
+     * 例如， {@link Handler#sendMessage(Message)} 方法将返回false。
      * </p><p class="note">
-     * Using this method may be unsafe because some messages may not be delivered
-     * before the looper terminates.  Consider using {@link #quitSafely} instead to ensure
-     * that all pending work is completed in an orderly manner.
+	 *
+     * 使用此方法可能是不安全的，因为某些消息可能在循环程序终止之前无法传递。
+     * 考虑改用 {@link #quitSafely} ，以确保以有序的方式完成所有挂起的工作。
      * </p>
      *
      * @see #quitSafely

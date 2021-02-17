@@ -6664,6 +6664,7 @@ public final class ActivityThread extends ClientTransactionHandler {
 
         Process.setArgV0("<pre-initialized>");
 
+		// 创建Looper对象和MessageQueue对象，用于处理主线程的消息
         Looper.prepareMainLooper();
 
         // Find the value for {@link #PROC_START_SEQ_IDENT} if provided on the command line.
@@ -6677,7 +6678,10 @@ public final class ActivityThread extends ClientTransactionHandler {
                 }
             }
         }
+		
+		// 创建ActivityThread对象
         ActivityThread thread = new ActivityThread();
+		// 创建Binder通道
         thread.attach(false, startSeq);
 
         if (sMainThreadHandler == null) {
@@ -6691,6 +6695,7 @@ public final class ActivityThread extends ClientTransactionHandler {
 
         // End of event ActivityThreadMain.
         Trace.traceEnd(Trace.TRACE_TAG_ACTIVITY_MANAGER);
+		// 消息循环运行
         Looper.loop();
 
         throw new RuntimeException("Main thread loop unexpectedly exited");
