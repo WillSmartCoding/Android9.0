@@ -48,8 +48,11 @@ public final class MessageQueue {
     private long mPtr; // used by native code
 
     Message mMessages;
+
+	// IdleHandler 列表
     private final ArrayList<IdleHandler> mIdleHandlers = new ArrayList<IdleHandler>();
     private SparseArray<FileDescriptorRecord> mFileDescriptorRecords;
+	// 	// 保存等待处理的 IdleHandler （闲时任务）
     private IdleHandler[] mPendingIdleHandlers;
     private boolean mQuitting;
 
@@ -68,6 +71,7 @@ public final class MessageQueue {
     private native static void nativeSetFileDescriptorEvents(long ptr, int fd, int events);
 
     MessageQueue(boolean quitAllowed) {
+		//mQuitAllowed决定队列是否可以销毁 主线程的队列不可以被销毁需要传入false, 在MessageQueue的quit()方法就不贴源码了
         mQuitAllowed = quitAllowed;
         mPtr = nativeInit();
     }
@@ -307,6 +311,11 @@ public final class MessageQueue {
         return newWatchedEvents;
     }
 
+	/**
+	 * 得到下一个等待处理的消息。如果当前消息队列为空或者下一个消息延时时间未到则阻塞线程。
+	 *
+	 * @return	<em>null</em> 消息队列已经退出或者被废弃
+	 */
     Message next() {
         // Return here if the message loop has already quit and been disposed.
         // This can happen if the application tries to restart a looper after quit
@@ -317,36 +326,73 @@ public final class MessageQueue {
         }
 
         int pendingIdleHandlerCount = -1; // -1 only during first iteration
+       	/**
+		 * 阻塞时长
+		 * -1 	一直阻塞不会超时
+		 * 0 	不会阻塞，立即返回
+		 * >0	最长阻塞nextPollTimeoutMillis毫秒(超时)
+		 */
         int nextPollTimeoutMillis = 0;
         for (;;) {
             if (nextPollTimeoutMillis != 0) {
                 Binder.flushPendingCommands();
             }
 
+			// nextPollTimeoutMillis为0立即返回，为-1则无限等待（必须主动唤醒），ptr为指针。
             nativePollOnce(ptr, nextPollTimeoutMillis);
 
+			/**
+			 * 疑问：取出消息，每次取的都是头部为什么还要加锁？
+			 * 
+			 * 必须要在next里面加锁，因为，这样由于synchronized（this）作用范围是所有 this正在访问的代
+			 * 码块都会有保护作用，也就是它可以保证 next函数和 enqueueMessage函数能够实现互斥。这样才能真正的保证多
+			 * 线程访问的时候messagequeue的有序进行。
+			 *
+			 * 想想一下：加入判断队列为空还没来得及阻塞 cpu切换到了 添加消息的方法，然后添加完消息，唤醒 next() 方法时还没来得及阻塞
+			 * 等cpu 切换回来时已经判断过消息队列为空了直接阻塞，但其实这里面面是有一条消息未处理的，这样的话只能等待下一个消息进来才可以唤醒
+			 */
             synchronized (this) {
-                // Try to retrieve the next message.  Return if found.
+                // 尝试检索下一条消息。如果找到，请返回。
+                // now等于自系统启动以来到此时此刻，非深度睡眠的时间,也就是获取系统开机到现在的时间
                 final long now = SystemClock.uptimeMillis();
                 Message prevMsg = null;
+				// mMessages 队列首个消息
                 Message msg = mMessages;
+
+				// 如果target==null，那么它就是屏障，需要循环遍历，一直往后找到第一个异步的消息
                 if (msg != null && msg.target == null) {
-                    // Stalled by a barrier.  Find the next asynchronous message in the queue.
+                    // 被同步障碍器阻挡。在队列中查找下一个异步消息。
+                    // 因为同步障碍器进入当前分支，找到下一个异步消息才会结束
                     do {
                         prevMsg = msg;
                         msg = msg.next;
+					/**
+					 * 注意 msg.isAsynchronous() 是拿异步消息，过滤同步消息
+					 */
                     } while (msg != null && !msg.isAsynchronous());
                 }
+
+				// 此时的消息一定是普通消息或者null，一定不是同步障碍器
                 if (msg != null) {
+					// 如果有消息需要处理，先判断时间有没有到，如果没到的话设置一下阻塞时间，
+					// 场景如常用的postDelay
                     if (now < msg.when) {
                         // Next message is not ready.  Set a timeout to wake up when it is ready.
+                        // 队首第一个同步障碍器的消息执行时间未到，计算阻塞时长
                         nextPollTimeoutMillis = (int) Math.min(msg.when - now, Integer.MAX_VALUE);
-                    } else {
+                    } else {// 一切正常开始取消息
                         // Got a message.
+                        // 不阻塞消息
                         mBlocked = false;
+						// 如果跳过了队首的同步障碍器取异步消息
+						// 链表操作，获取msg并且删除该节点
+						/**
+						 * 同步屏障就是一个 target = null 的标志的 Message 所以要跳过，直接拿上面过滤完的异步消息
+						 * 这样就做到了屏蔽了同步消息，只处理异步消息
+						 */
                         if (prevMsg != null) {
                             prevMsg.next = msg.next;
-                        } else {
+                        } else {// 如果当前消息就是队首消息
                             mMessages = msg.next;
                         }
                         msg.next = null;
@@ -354,9 +400,9 @@ public final class MessageQueue {
                         msg.markInUse();
                         return msg;
                     }
-                } else {
+                } else {// 消息队列为空，或者队首是SyncBarrier且队列中无异步消息
                     // No more messages.
-                    nextPollTimeoutMillis = -1;
+                    nextPollTimeoutMillis = -1;// -1表示无限等待
                 }
 
                 // Process the quit message now that all pending messages have been handled.
@@ -368,10 +414,12 @@ public final class MessageQueue {
                 // If first time idle, then get the number of idlers to run.
                 // Idle handles only run if the queue is empty or if the first message
                 // in the queue (possibly a barrier) is due to be handled in the future.
+                // 所有待处理的消息处理完成，接下来处理闲时任务。
                 if (pendingIdleHandlerCount < 0
                         && (mMessages == null || now < mMessages.when)) {
                     pendingIdleHandlerCount = mIdleHandlers.size();
                 }
+				// 闲暇任务列表为空，或者不是第一次执行到这里
                 if (pendingIdleHandlerCount <= 0) {
                     // No idle handlers to run.  Loop and wait some more.
                     mBlocked = true;
@@ -382,12 +430,13 @@ public final class MessageQueue {
                     mPendingIdleHandlers = new IdleHandler[Math.max(pendingIdleHandlerCount, 4)];
                 }
                 mPendingIdleHandlers = mIdleHandlers.toArray(mPendingIdleHandlers);
-            }
+            }// synchronized(this) end
 
             // Run the idle handlers.
             // We only ever reach this code block during the first iteration.
             for (int i = 0; i < pendingIdleHandlerCount; i++) {
                 final IdleHandler idler = mPendingIdleHandlers[i];
+				// 待处理闲时任务即将被处理，将其从处理数组中删除（置空引用）
                 mPendingIdleHandlers[i] = null; // release the reference to the handler
 
                 boolean keep = false;
@@ -405,10 +454,13 @@ public final class MessageQueue {
             }
 
             // Reset the idle handler count to 0 so we do not run them again.
+            // 将待处理的IdleHandler个数设置为0，使得本次next()的调用再也不会到达这个for循环
             pendingIdleHandlerCount = 0;
 
             // While calling an idle handler, a new message could have been delivered
             // so go back and look again for a pending message without waiting.
+            // 因为执行闲时任务花费了一段时间（迭代开始处的阻塞方式还未执行到所以还未阻塞），此时
+            // 再根据之前算出阻塞时长阻塞线程显然不合适
             nextPollTimeoutMillis = 0;
         }
     }
@@ -462,24 +514,38 @@ public final class MessageQueue {
         return postSyncBarrier(SystemClock.uptimeMillis());
     }
 
+
+	/**
+	 * 将同步障碍器加入消息队列。如果此时消息队列处于阻塞状态也不需要唤醒，因为障碍器本身的目的就是
+ 	 * 阻碍消息队列的循环处理。（可以假设一下为什么阻塞，各种阻塞场景下需不需要唤醒）
+	 * @param when 同步障碍器从何时起效（这个时间是自系统启动开始算起，到指定时间的不包含深度睡
+	 *			   眠的毫秒数）。
+	 * @return	新增的同步障碍器token，用于{@link #removeSyncBarrier(int) }移除障碍器时使用
+	 */
     private int postSyncBarrier(long when) {
         // Enqueue a new sync barrier token.
         // We don't need to wake the queue because the purpose of a barrier is to stall it.
         synchronized (this) {
             final int token = mNextBarrierToken++;
+			//从消息池取出一个消息，并将其设置为同步障碍器（target为null，且arg1保存token的消息）
             final Message msg = Message.obtain();
             msg.markInUse();
+			// 就是这里！！！初始化Message对象的时候，并没有给target赋值，因此 target==null
             msg.when = when;
             msg.arg1 = token;
 
             Message prev = null;
             Message p = mMessages;
+			//找到msg在消息队列中的位置（消息队列按照when从小到大排列），并把msg插入其中
             if (when != 0) {
                 while (p != null && p.when <= when) {
+					// 如果开启同步屏障的时间（假设记为T）T不为0，且当前的同步消息里有时间小于T，则prev也不为null
                     prev = p;
                     p = p.next;
                 }
             }
+
+			// 根据prev是不是为null，将 msg 按照时间顺序插入到 消息队列（链表）的合适位置
             if (prev != null) { // invariant: p == prev.next
                 msg.next = p;
                 prev.next = msg;
@@ -487,6 +553,8 @@ public final class MessageQueue {
                 msg.next = p;
                 mMessages = msg;
             }
+			// 可以看到，Message 对象初始化的时候并没有给 target 赋值，因此， target == null 的 来源就找到了。上面消
+            // 息的插入也做了相应的注释。这样，一条 target == null 的消息就进入了消息队列。
             return token;
         }
     }
@@ -540,7 +608,14 @@ public final class MessageQueue {
         if (msg.isInUse()) {
             throw new IllegalStateException(msg + " This message is already in use.");
         }
-
+		/**
+		 * 场景：主线程new Handler，多个子线程使用这个 mHandler sendMessage() 这个锁的意义就体现出来了
+		 *
+		 * 添加消息使用了内置锁 this,说明的是对所有调用同一个MessageQueue对象的线程来说，他们都是互斥的
+		 * 然而，在我们的Handler里面，一个线程是对应着一个唯一的Looper对象，而Looper中又只有一个唯一的MessageQueue
+		 * 所以，我们主线程就只有一个MessageQueue对象，也就是说，所有的子线程向主线程发送消息的时候，
+		 * 主线程一次都只会处理一个消息，其他的都需要等待，那么这个时候消息队列就不会出现混乱。
+		 */
         synchronized (this) {
             if (mQuitting) {
                 IllegalStateException e = new IllegalStateException(
@@ -807,6 +882,10 @@ public final class MessageQueue {
     /**
      * Callback interface for discovering when a thread is going to block
      * waiting for more messages.
+     * 回调接口，当线程准备阻塞以等待更多的消息时调用
+     * 开发者可以实现自己的 IdleHandler 类，然后通过 {@link #addIdelHandler}方法将其添加到消息队列
+     * 中。一旦消息队列的循环空闲下来，就会执行这些 IdleHandler
+     * 
      */
     public static interface IdleHandler {
         /**
@@ -815,6 +894,12 @@ public final class MessageQueue {
          * to have it removed.  This may be called if there are still messages
          * pending in the queue, but they are all scheduled to be dispatched
          * after the current time.
+         * 方法在两种情况下会被调用：
+         * 1.当消息队列处理完消息开始等待消息时，此时队列为空;
+         * 2.当队列中依然有待处理的消息，但这些消息的交付（delivery）时刻要晚于当前时刻时;
+
+         * return <em>true<em> 下次执行 {@link #next()}如果遇到空闲,依然执行这个 IdleHandler(闲时任务);
+         *		  <em>false<em> 这次 IdleHandler 执行完之后就把它从闲时任务列表中删除。
          */
         boolean queueIdle();
     }

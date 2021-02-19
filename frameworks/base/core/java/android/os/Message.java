@@ -90,7 +90,7 @@ public final class Message implements Parcelable {
      */
     /*package*/ static final int FLAG_IN_USE = 1 << 0;
 
-    /** If set message is asynchronous */
+    /** 如果设置消息是异步的 2*/
     /*package*/ static final int FLAG_ASYNCHRONOUS = 1 << 1;
 
     /** Flags to clear in the copyFrom method */
@@ -125,6 +125,7 @@ public final class Message implements Parcelable {
      */
     public static Message obtain() {
         synchronized (sPoolSync) {
+			// sPool是就是handler dispatchMessage 后 通过recycleUnchecked回收用以复用的Message
             if (sPool != null) {
                 Message m = sPool;
                 sPool = m.next;
@@ -166,7 +167,9 @@ public final class Message implements Parcelable {
      * @return A Message object from the global pool.
      */
     public static Message obtain(Handler h) {
+	    // 调用重载的obtain方法
         Message m = obtain();
+		// 并绑定的创建Message对象的handler
         m.target = h;
 
         return m;
@@ -440,7 +443,7 @@ public final class Message implements Parcelable {
      * Returns true if the message is asynchronous, meaning that it is not
      * subject to {@link Looper} synchronization barriers.
      *
-     * @return True if the message is asynchronous.
+     * @return True 异步的 False 非异步.
      *
      * @see #setAsynchronous(boolean)
      */

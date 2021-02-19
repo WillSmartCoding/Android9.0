@@ -66,6 +66,7 @@ public final class Looper {
     private static final String TAG = "Looper";
 
     // streadlocal.get() 将返回null，除非调用prepare()。
+    // 这是Handler中定义的ThreadLocal ThreadLocal主要解多线程并发的问题
     static final ThreadLocal<Looper> sThreadLocal = new ThreadLocal<Looper>();
     private static Looper sMainLooper;  // guarded by Looper.class
 
@@ -101,10 +102,11 @@ public final class Looper {
 	 * 这个值是给 MessageQueue 初始化使用的
 	 */
     private static void prepare(boolean quitAllowed) {
-	    // 一个线程只能创建一次，第二次就抛异常了
-        if (sThreadLocal.get() != null) {
+        if (sThreadLocal.get() != null) { //不为空表示当前线程已经创建了Looper
+	        //每个线程只能创建一个Looper,第二次就抛异常了
             throw new RuntimeException("Only one Looper may be created per thread");
         }
+		// //创建Looper并设置给sThreadLocal，这样get的时候就不会为null了
         sThreadLocal.set(new Looper(quitAllowed));
     }
 
@@ -139,9 +141,10 @@ public final class Looper {
      * {@link #quit()} to end the loop.
      */
     public static void loop() {
-    	// 判断当前线程的Looper是否已经创建
+    	// myLooper() 里面调用了sThreadLocal.get()获得刚才创建的Looper对象
         final Looper me = myLooper();
         if (me == null) {
+	    	// 判断当前线程的Looper是否已经创建
             throw new RuntimeException("No Looper; Looper.prepare() wasn't called on this thread.");
         }
 		// 获取消息队列
@@ -197,6 +200,7 @@ public final class Looper {
             final long dispatchStart = needStartTime ? SystemClock.uptimeMillis() : 0;
             final long dispatchEnd;
             try {
+				// msg.target就是绑定的Handler
                 msg.target.dispatchMessage(msg);
                 dispatchEnd = needEndTime ? SystemClock.uptimeMillis() : 0;
             } finally {
@@ -272,8 +276,8 @@ public final class Looper {
     }
 
     private Looper(boolean quitAllowed) {
-        mQueue = new MessageQueue(quitAllowed);
-        mThread = Thread.currentThread();
+        mQueue = new MessageQueue(quitAllowed);//创建了MessageQueue
+        mThread = Thread.currentThread();//当前线程的绑定
     }
 
     /**
