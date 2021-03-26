@@ -77,6 +77,11 @@ class ClassesInfoCache {
     }
 
     CallbackInfo getInfo(Class klass) {
+    	// 获取对应 LifecycleObserver 观察者的Class信息
+    	// 如果存在直接返回，不存在的话则缓存，再返回
+    	/**
+    	 * 第一次肯定是空的 需要 createInfo
+    	 */
         CallbackInfo existing = mCallbackMap.get(klass);
         if (existing != null) {
             return existing;
@@ -118,23 +123,53 @@ class ClassesInfoCache {
             }
         }
 
+		/**
+		 * 获取传入的 实现LifecycleObserver 的观察者的所有方法
+		 * 遍历，找到被 OnLifecycleEvent 注解的方法，也就是：
+		 * 
+		 *  @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
+		 *	public void onStop() {
+         *		
+	     * 	}
+		 */
         Method[] methods = declaredMethods != null ? declaredMethods : getDeclaredMethods(klass);
         boolean hasLifecycleMethods = false;
         for (Method method : methods) {
+			// 判断是否被 OnLifecycleEvent 注解
             OnLifecycleEvent annotation = method.getAnnotation(OnLifecycleEvent.class);
             if (annotation == null) {
+				// 条件不满足跳过
                 continue;
             }
             hasLifecycleMethods = true;
-            Class<?>[] params = method.getParameterTypes();
+			/**
+			 * 获取方法的参数是几个，可以是：
+			 * 
+			 * 1.没有参数
+			 * @OnLifecycleEvent(Lifecycle.Event.ON_CREATE)
+			 * public void onCreate() {}
+			 * 
+			 * 2.一个参数
+			 * @OnLifecycleEvent(Lifecycle.Event.ON_CREATE)
+			 * public void onCreate(LifecycleOwner lifecycleOwner) {}
+			 *
+			 * 3.两个参数
+			 * @OnLifecycleEvent(Lifecycle.Event.ON_CREATE)
+			 * public void onCreate(LifecycleOwner lifecycleOwner,Lifecycle.Event event) {}
+			 */
+
+			Class<?>[] params = method.getParameterTypes();
             int callType = CALL_TYPE_NO_ARG;
             if (params.length > 0) {
                 callType = CALL_TYPE_PROVIDER;
+				// 如果第一个参数不是 LifecycleOwner 就抛出异常
                 if (!params[0].isAssignableFrom(LifecycleOwner.class)) {
                     throw new IllegalArgumentException(
                             "invalid parameter type. Must be one and instanceof LifecycleOwner");
                 }
             }
+			// 获取注解 @OnLifecycleEvent(Lifecycle.Event.ON_RESUME) 的value
+			// 获取方法监听的是哪个状态
             Lifecycle.Event event = annotation.value();
 
             if (params.length > 1) {
@@ -151,9 +186,13 @@ class ClassesInfoCache {
             if (params.length > 2) {
                 throw new IllegalArgumentException("cannot have more than 2 params");
             }
+			// 把 调用类型 和 method封装成 MethodReference 对象
             MethodReference methodReference = new MethodReference(callType, method);
+			// 验证 然后放到 handlers 中
+			// 第一个参数：Map<MethodReference, Lifecycle.Event> handlers
             verifyAndPutHandler(handlerToEvent, methodReference, event, klass);
         }
+		// 缓存完 ，做一个包装 然后返回。
         CallbackInfo info = new CallbackInfo(handlerToEvent);
         mCallbackMap.put(klass, info);
         mHasLifecycleMethods.put(klass, hasLifecycleMethods);

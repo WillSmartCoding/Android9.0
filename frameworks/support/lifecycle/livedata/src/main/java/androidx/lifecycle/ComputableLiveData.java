@@ -37,6 +37,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @param <T> The type of the live data
  * @hide internal
  */
+// 并非LiveData的子类，而是内部维护了一个LiveData。该类内部LiveData的数据来源，
+// 并不来自数据的设置，而是来自子类实现的compute()方法的返回值。当数据更新时，
+// 调用invalidate()方法通知LiveData重新调用compute()计算数据。
+// 默认运行在一个大小为4，专用IO操作的线程池(arch_disk_io_%i)。
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public abstract class ComputableLiveData<T> {
 

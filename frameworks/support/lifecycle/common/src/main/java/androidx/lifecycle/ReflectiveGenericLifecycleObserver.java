@@ -26,8 +26,13 @@ class ReflectiveGenericLifecycleObserver implements GenericLifecycleObserver {
     private final Object mWrapped;
     private final CallbackInfo mInfo;
 
+	/**
+	 * Object wrapped 就是传入的 LifecycleObserver
+	 *
+	 */
     ReflectiveGenericLifecycleObserver(Object wrapped) {
-        mWrapped = wrapped;
+        mWrapped = wrapped;、
+		// 缓存Observer 的信息并返回赋值 mInfo
         mInfo = ClassesInfoCache.sInstance.getInfo(mWrapped.getClass());
     }
 

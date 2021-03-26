@@ -43,6 +43,13 @@ public class Lifecycling {
     private static Map<Class, List<Constructor<? extends GeneratedAdapter>>> sClassToAdapters =
             new HashMap<>();
 
+	/**
+	 * LifecycleRegistry.addObserver(observer)
+	 * new ObserverWithState(observer, initialState);
+	 * Lifecycling.getCallback(observer);
+	 * Object object 实现 LifecycleObserver 的传入的观察者
+	 *
+	 */
     @NonNull
     static GenericLifecycleObserver getCallback(Object object) {
         if (object instanceof FullLifecycleObserver) {
@@ -69,6 +76,7 @@ public class Lifecycling {
             }
             return new CompositeGeneratedAdaptersObserver(adapters);
         }
+		// 返回一个 new  出来的 GenericLifecycleObserver 并将observer 传入 GenericLifecycleObserver的构造方法。
         return new ReflectiveGenericLifecycleObserver(object);
     }
 

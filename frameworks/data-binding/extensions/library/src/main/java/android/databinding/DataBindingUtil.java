@@ -137,6 +137,7 @@ public class DataBindingUtil {
      */
     @SuppressWarnings("unchecked")
     public static <T extends ViewDataBinding> T bind(View root) {
+    	// 这个root 就是xml 中的 rootView
         return bind(root, sDefaultComponent);
     }
 
@@ -265,16 +266,19 @@ public class DataBindingUtil {
      * Set the Activity's content view to the given layout and return the associated binding.
      * The given layout resource must not be a merge layout.
      *
-     * @param bindingComponent The DataBindingComponent to use in data binding.
-     * @param activity The Activity whose content View should change.
-     * @param layoutId The resource ID of the layout to be inflated, bound, and set as the
-     *                 Activity's content.
+     * @param bindingComponent 要在数据绑定中使用的数据绑定组件。
+     * @param activity 
+     * @param layoutId 
      * @return The binding associated with the inflated content view.
      */
     public static <T extends ViewDataBinding> T setContentView(Activity activity, int layoutId,
             DataBindingComponent bindingComponent) {
+
+		// 先进行 setContentView
         activity.setContentView(layoutId);
+		// 拿到DecorView （PhoneWindow DectorView ContentParent）
         View decorView = activity.getWindow().getDecorView();
+		// 拿到ContentView
         ViewGroup contentView = (ViewGroup) decorView.findViewById(android.R.id.content);
         return bindToAddedViews(bindingComponent, contentView, 0, layoutId);
     }
@@ -292,6 +296,9 @@ public class DataBindingUtil {
 
     private static <T extends ViewDataBinding> T bindToAddedViews(DataBindingComponent component,
             ViewGroup parent, int startChildren, int layoutId) {
+
+		// parent 就是 DeotorView 中的 android.R.id.content
+		// 这个获取的就是xml的根布局 永远都是 1
         final int endChildren = parent.getChildCount();
         final int childrenAdded = endChildren - startChildren;
         if (childrenAdded == 1) {

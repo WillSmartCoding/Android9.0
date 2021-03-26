@@ -32,6 +32,9 @@ public class ReportFragment extends Fragment {
     private static final String REPORT_FRAGMENT_TAG = "androidx.lifecycle"
             + ".LifecycleDispatcher.report_fragment_tag";
 
+	/**
+	 * 添加一个没有 xml 的Fragment 到Activity ，然后来监测生命周期
+	 */
     public static void injectIfNeededIn(Activity activity) {
         // ProcessLifecycleOwner should always correctly work and some activities may not extend
         // FragmentActivity from support lib, so we use framework fragments for activities
@@ -110,7 +113,9 @@ public class ReportFragment extends Fragment {
     }
 
     private void dispatch(Lifecycle.Event event) {
+    	// 获取Activity
         Activity activity = getActivity();
+		// 然后通过 LifecycleRegistry 也就是 Lifecycle 唯一实现类，调用它的 handleLifecycleEvent 来将Event分发
         if (activity instanceof LifecycleRegistryOwner) {
             ((LifecycleRegistryOwner) activity).getLifecycle().handleLifecycleEvent(event);
             return;

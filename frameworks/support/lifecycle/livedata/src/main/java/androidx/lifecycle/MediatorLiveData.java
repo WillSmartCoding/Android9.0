@@ -64,6 +64,14 @@ import java.util.Map;
  * </pre>
  *
  * @param <T> The type of data hold by this instance
+ *
+ * MutableLiveData的一个子类。该类除了LiveData的功能外，允许对多个LiveData的进行观察:
+ *
+ * MutableLiveData会把需要观察的LiveData和对应的Observer封装为一个Source，
+ * 自身则维护着Source列表。当MutableLiveData激活时，遍历Source列表，
+ * 以AlwaysActiveObserver的形式对需要观察的LiveData进行注册。而MutableLiveData失去激活时，
+ * 则自动移除Source列表中所有LiveData注册。任意LiveData数据更新时，根据需求，
+ * 决定是否对自身进行维护或更新，即实现了对任意个LiveData的数据更新事件进行管理。
  */
 @SuppressWarnings("WeakerAccess")
 public class MediatorLiveData<T> extends MutableLiveData<T> {

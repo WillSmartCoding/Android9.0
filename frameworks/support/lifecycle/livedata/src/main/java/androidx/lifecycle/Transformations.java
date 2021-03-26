@@ -64,6 +64,7 @@ public class Transformations {
      * @return a LiveData mapped from {@code source} to type {@code <Y>} by applying
      * {@code mapFunction} to each value set.
      */
+    // 数据转换， 从 X 转换为 Y
     @MainThread
     public static <X, Y> LiveData<Y> map(
             @NonNull LiveData<X> source,
@@ -128,6 +129,7 @@ public class Transformations {
      * to the LiveData returned by applying {@code switchMapFunction} to each
      * value set
      */
+    // 根据 trigger 和 func 生成新的 LiveData<Y>, 下游将监听 LiveData<Y>。类似于 rxjava 的 flatMap。
     @MainThread
     public static <X, Y> LiveData<Y> switchMap(
             @NonNull LiveData<X> source,
